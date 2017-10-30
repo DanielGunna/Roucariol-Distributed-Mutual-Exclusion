@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package trabalhodistribuida;
+package printerpoolling;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -14,8 +14,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -28,9 +26,13 @@ public class Node {
     private HashMap<String, Socket> clientsTable;
     private int defaultClientPort = 8000;
     private final int defaultServerPort = 8001;
+    private HashMap<String,Message> criticalSectionTable;
+    private static final String defaultIp = "127.0.0.1";
 
     public Node() {
         numClients = 1;
+        criticalSectionTable = new HashMap<>();
+        clientsTable = new HashMap<>();
     }
 
     public void initAddresses(String[] args) {
@@ -110,15 +112,28 @@ public class Node {
                 }
         ).start();
     }
+    
+    
+    
+    
+    
+    
 
     private Message getConnectMessage(Socket client) {
         return new Message();
     }
 
     private void tryEntryCriticalSection() {
-        for(Map.Entry<String,Socket> i : clientsTable.entrySet()){
-            
+    
+    }
+    
+    private boolean isCriticalSectionFree(){
+        for(Map.Entry<String,Message> i : criticalSectionTable.entrySet()){
+            if(!i.getKey().equals(defaultIp) && i.getValue().isEntryCriticalSection()){
+                
+            }
         }
+        return true;
     }
 
 }
