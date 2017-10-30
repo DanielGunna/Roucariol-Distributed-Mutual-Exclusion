@@ -50,7 +50,8 @@ public class Node {
                         listenerSocket = new ServerSocket(defaultServerPort);
                         handleNewConnection(listenerSocket.accept());
                     } catch (Exception ex) {
-                        System.out.println("Erro ao conectar   escutar porta" + defaultServerPort + "causa : " + ex.getMessage());
+                        System.out.println("Erro ao conectar   escutar porta" + 
+                                defaultServerPort + "causa : " + ex.getMessage());
                     }
                 }
         ).start();
@@ -90,10 +91,12 @@ public class Node {
 
     private void sendMessage(Socket client, Message message) {
         try {
-            ObjectOutputStream ois = new ObjectOutputStream(client.getOutputStream());
+            ObjectOutputStream ois = 
+                    new ObjectOutputStream(client.getOutputStream());
             ois.writeObject(message);
         } catch (IOException ex) {
-            System.out.println("Erro ao enviar msg para " + client.getInetAddress());
+            System.out.println("Erro ao enviar msg para " 
+                    + client.getInetAddress());
         }
     }
 
@@ -101,39 +104,50 @@ public class Node {
         new Thread(
                 () -> {
                     try {
-                        ObjectInputStream ois = new ObjectInputStream(client.getInputStream());
+                        ObjectInputStream ois = 
+                                new ObjectInputStream(client.getInputStream());
                         Message message = null;
                         while ((message = ((Message) ois.readObject())) != null) {
                             handleMessage(message);
                         }
                     } catch (Exception ex) {
-                        System.out.println("Erro ao conectar ao  nó " + client.getInetAddress() + " causa : " + ex.getMessage());
+                        System.out.println("Erro ao conectar ao  nó " 
+                                + client.getInetAddress() 
+                                + " causa : " + ex.getMessage());
                     }
                 }
         ).start();
     }
-    
-    
-    
-    
-    
-    
 
     private Message getConnectMessage(Socket client) {
         return new Message();
     }
 
     private void tryEntryCriticalSection() {
-    
+        if(isCriticalSectionFree()){
+            sendMessageToEntryCriticalSection(); 
+        }
     }
     
     private boolean isCriticalSectionFree(){
         for(Map.Entry<String,Message> i : criticalSectionTable.entrySet()){
-            if(!i.getKey().equals(defaultIp) && i.getValue().isEntryCriticalSection()){
-                
+            if(!i.getKey().equals(defaultIp) 
+                    && i.getValue().isEntryCriticalSection()){
+                return false;
             }
         }
         return true;
     }
 
-}
+    private void sendMessageToEntryCriticalSection() {
+          for(Map.Entry<String,Socket> i : clientsTable.entrySet()){
+              sendMessage(
+                      i.getValue(),
+                      Message.getEntryMessage(
+                              i.getValue().getInetAddress().toString()
+                      )
+              );
+          }
+    }
+
+}  
