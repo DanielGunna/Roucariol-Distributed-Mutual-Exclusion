@@ -24,6 +24,7 @@ import java.util.logging.Logger;
  */
 public class Node {
 
+    private Socket serverSocket;
     private int numClients;
     private ServerSocket listenerSocket;
     private HashMap<String, Socket> clientsTable;
@@ -37,7 +38,7 @@ public class Node {
     private long HSN, OSN;
     private Message lastMessage;
 
-    public Node() {
+    public Node(String serverIp) {
         numClients = 1;
         HSN = 0;
         OSN = 0;
@@ -46,6 +47,16 @@ public class Node {
         proxTable = new HashMap<>();
         messages = new ArrayList<>();
         clientsTable = new HashMap<>();
+        initServerSocket(serverIp);
+    }
+
+    private void initServerSocket(String serverIp) {
+        try {
+            serverSocket = new Socket(serverIp, defaultServerPort);
+            handleNewConnection(serverSocket);
+        } catch (Exception ex) {
+            System.out.println("Erro ao conectar com servidor" + ex.getMessage());
+        }
     }
 
     //Carvalho Roucariol Algorithm Logic
@@ -81,6 +92,8 @@ public class Node {
     }
 
     private void handleMessage(Socket client, Message message) {
+        System.out.println(message.getMessageTypeName()+
+                "<---- ["+message.getNodeId()+"] ("+message.getTimestamp()+")");
         switch (message.getMessageType()) {
             case REQUEST:
                 proxTable.put(message.getNodeId(), message);
@@ -93,6 +106,10 @@ public class Node {
                 currentTable.put(message.getNodeId(), message);
                 proxTable.put(message.getNodeId(), message);
                 verifyAfterReply();
+                break;
+            case FINISHED:
+                status = NodeStatus.FREE;
+                notifyQueue();
                 break;
         }
     }
@@ -108,20 +125,12 @@ public class Node {
 
     private void entryCriticalSection() {
         status = NodeStatus.BUSY;
-        for (int x = 0; x < 10; x++) {
-            System.out.println(lastMessage.getTimestamp() + x);
-            try {
-                TimeUnit.SECONDS.sleep(1);
-            } catch (InterruptedException ex) {
-                System.out.println(ex.getMessage());
-            }
-        }
-        status = NodeStatus.FREE;
-        notifyQueue();
+        sendMessage(serverSocket, Message.getStartMessage());
     }
 
     private void notifyQueue() {
         messages.forEach((m) -> sendMessage(clientsTable.get(m.getNodeId()), Message.getReplyMessage()));
+        messages.clear();
     }
 
     private void handleCommunicationMessage(Message message) {
@@ -206,6 +215,8 @@ public class Node {
 
     private void sendMessage(Socket client, Message message) {
         try {
+            System.out.println(message.getMessageTypeName()+ 
+                    "----> ["+message.getNodeId()+"] ("+message.getTimestamp()+")");
             ObjectOutputStream ois
                     = new ObjectOutputStream(client.getOutputStream());
             ois.writeObject(message);

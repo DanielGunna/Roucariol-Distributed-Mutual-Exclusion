@@ -66,6 +66,7 @@ public class Message implements Serializable {
         message.setMessageType(MessageType.REQUEST);
         return message;
     }
+    
 
     public static Message getConnectMessage() {
         Message message = new Message();
@@ -79,5 +80,24 @@ public class Message implements Serializable {
         message.setTimestamp(System.currentTimeMillis());
         message.setMessageType(MessageType.REPLY);
         return message;
+    }
+    
+    public static Message getFinishedMessage() {
+        Message message = new Message();
+        message.setTimestamp(System.currentTimeMillis());
+        message.setMessageType(MessageType.FINISHED);
+        return message;
+    }
+    
+    public static Message getStartMessage() {
+        Message message = new Message();
+        message.setTimestamp(System.currentTimeMillis());
+        message.setMessageType(MessageType.START);
+        return message;
+    }
+    
+    
+    public String getMessageTypeName(){
+       return  messageType.name();
     }
 }

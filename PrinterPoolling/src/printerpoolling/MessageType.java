@@ -12,6 +12,7 @@ package printerpoolling;
 public  enum MessageType {
     REQUEST,
     REPLY,
-    CONNECT
-    
+    CONNECT,
+    FINISHED,
+    START
 }
