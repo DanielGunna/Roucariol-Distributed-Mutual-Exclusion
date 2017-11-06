@@ -10,7 +10,8 @@ package printerpoolling;
  * @author felipesilva
  */
 public  enum MessageType {
-    ENTRY_CRITICAL_SECTION,
-    LEAVE_CRITICAL_SECTION,
+    REQUEST,
+    REPLY,
+    CONNECT
     
 }

@@ -11,22 +11,36 @@ import java.io.Serializable;
  *
  * @author 940437
  */
-public class Message  implements Serializable{
-    private boolean entryCriticalSection;
-    private  MessageType messageType;
+public class Message implements Serializable {
+
+    private MessageType messageType;
     private long timestamp;
+    private long incrementedStamp;
     private String nodeId;
+    private long OSN;
+
+    public long getOSN() {
+        return OSN;
+    }
+
+    public void setOSN(long OSN) {
+        this.OSN = OSN;
+    }
 
     public String getNodeId() {
         return nodeId;
     }
 
+    public long getIncrementedStamp() {
+        return incrementedStamp;
+    }
+
+    public void incrementeStamp() {
+        this.incrementedStamp++;
+    }
+
     public void setNodeId(String nodeId) {
         this.nodeId = nodeId;
-    }
-    
-    public boolean isEntryCriticalSection() {
-        return entryCriticalSection;
     }
 
     public long getTimestamp() {
@@ -37,10 +51,6 @@ public class Message  implements Serializable{
         this.timestamp = timeStamp;
     }
 
-    public void setEntryCriticalSection(boolean entryCriticalSection) {
-        this.entryCriticalSection = entryCriticalSection;
-    }
-
     public MessageType getMessageType() {
         return messageType;
     }
@@ -48,20 +58,26 @@ public class Message  implements Serializable{
     public void setMessageType(MessageType messageType) {
         this.messageType = messageType;
     }
-    
-    public static Message getEntryMessage(String nodeId){
+
+    public static Message getRequestMessage(long osn) {
         Message message = new Message();
         message.setTimestamp(System.currentTimeMillis());
-        message.setNodeId(nodeId);
-        message.setMessageType(MessageType.ENTRY_CRITICAL_SECTION);
+        message.setOSN(osn);
+        message.setMessageType(MessageType.REQUEST);
         return message;
     }
-    
-    public static Message getLeaveMessage(String nodeId){
+
+    public static Message getConnectMessage() {
         Message message = new Message();
-        message.setNodeId(nodeId);
         message.setTimestamp(System.currentTimeMillis());
-        message.setMessageType(MessageType.LEAVE_CRITICAL_SECTION);
+        message.setMessageType(MessageType.CONNECT);
+        return message;
+    }
+
+    public static Message getReplyMessage() {
+        Message message = new Message();
+        message.setTimestamp(System.currentTimeMillis());
+        message.setMessageType(MessageType.REPLY);
         return message;
     }
 }
