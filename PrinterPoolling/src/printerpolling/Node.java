@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package printerpoolling;
+package printerpolling;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -96,22 +96,34 @@ public class Node {
                 "<---- ["+message.getNodeId()+"] ("+message.getTimestamp()+")");
         switch (message.getMessageType()) {
             case REQUEST:
-                proxTable.put(message.getNodeId(), message);
-                handleCommunicationMessage(message);
+                onRequestReceived(message);
                 break;
             case CONNECT:
                 handleConnectMessage(client, message);
                 break;
             case REPLY:
-                currentTable.put(message.getNodeId(), message);
-                proxTable.put(message.getNodeId(), message);
-                verifyAfterReply();
+                onReplyReceived(message);
                 break;
             case FINISHED:
-                status = NodeStatus.FREE;
-                notifyQueue();
+                onFinisheReceivied();
                 break;
         }
+    }
+    
+    private void onRequestReceived(Message message){
+       proxTable.put(message.getNodeId(), message);
+       handleCommunicationMessage(message);
+    }
+    
+    private void onReplyReceived(Message message){
+       currentTable.put(message.getNodeId(), message);
+       proxTable.put(message.getNodeId(), message);
+       verifyAfterReply();
+    }
+    
+    private void onFinisheReceivied(){
+       status = NodeStatus.FREE;
+       notifyQueue();
     }
 
     private void verifyAfterReply() {
