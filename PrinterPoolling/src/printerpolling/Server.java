@@ -19,8 +19,17 @@ import java.util.concurrent.TimeUnit;
 public class Server {
 
     private ServerSocket serverSocket;
-    private final int defaultServerPort = 8001;
+    private int defaultServerPort = 8000;
     private Message lastMessage;
+
+    public Server() {
+        waitForClients();
+    }
+
+    public Server(int port) {
+        this.defaultServerPort = port;
+        waitForClients();
+    }
 
     private void waitForClients() {
         new Thread(
@@ -60,17 +69,17 @@ public class Server {
 
     private void handleMessage(Socket client, Message message) {
         for (int x = 0; x < 10; x++) {
-            System.out.println("Message from : "+ message.getNodeId() + lastMessage.getTimestamp() + x);
+            System.out.println("Working from : [" + message.getNodeName() + "](" + message.getNodeId() + "): " + +lastMessage.getTimestamp() + x);
             try {
                 TimeUnit.SECONDS.sleep(1);
             } catch (InterruptedException ex) {
                 System.out.println(ex.getMessage());
             }
         }
-        sendMessage(client,Message.getFinishedMessage());
+        sendMessage(client, Message.getFinishedMessage("Server",""));
     }
-    
-        private void sendMessage(Socket client, Message message) {
+
+    private void sendMessage(Socket client, Message message) {
         try {
             ObjectOutputStream ois
                     = new ObjectOutputStream(client.getOutputStream());

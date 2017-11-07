@@ -28,17 +28,18 @@ public class Node {
     private int numClients;
     private ServerSocket listenerSocket;
     private HashMap<String, Socket> clientsTable;
-    private int defaultClientPort = 8000;
-    private final int defaultServerPort = 8001;
+    private final int defaultServerPort;
     private HashMap<String, Message> currentTable;
     private HashMap<String, Message> proxTable;
     private ArrayList<Message> messages;
     private static final String defaultIp = "127.0.0.1";
     private NodeStatus status;
     private long HSN, OSN;
+    private String name;
     private Message lastMessage;
 
-    public Node(String serverIp) {
+    public Node(String name, int port, Client server) {
+        this.name = name;
         numClients = 1;
         HSN = 0;
         OSN = 0;
@@ -47,15 +48,19 @@ public class Node {
         proxTable = new HashMap<>();
         messages = new ArrayList<>();
         clientsTable = new HashMap<>();
-        initServerSocket(serverIp);
+        defaultServerPort = port;
+        initServerSocket(server);
+       // waitForClients();
+       // verifyCanAccess();
     }
 
-    private void initServerSocket(String serverIp) {
+    private void initServerSocket(Client server) {
         try {
-            serverSocket = new Socket(serverIp, defaultServerPort);
+            serverSocket = new Socket(server.getIpAddress(), server.getPort());
             handleNewConnection(serverSocket);
         } catch (Exception ex) {
-            System.out.println("Erro ao conectar com servidor" + ex.getMessage());
+            System.out.println(name + " :Erro ao conectar com servidor " + ex.getMessage());
+            sleep(2);
         }
     }
 
@@ -65,6 +70,8 @@ public class Node {
                 () -> {
                     while (true) {
                         if (getRamdomNumber() > 0.5) {
+                            System.out.println(name + " Vai tentar acessar o recurso");
+                            sleep(2);
                             tryEntryCriticalSection();
                         }
                     }
@@ -86,14 +93,18 @@ public class Node {
         currentTable = (HashMap<String, Message>) proxTable.clone();
         for (Map.Entry<String, Message> i : currentTable.entrySet()) {
             if (i.getValue() == null || i.getValue().getMessageType() == MessageType.REQUEST) {
-                sendMessage(clientsTable.get(i.getKey()), Message.getRequestMessage(OSN));
+                sendMessage(clientsTable.get(i.getKey()),
+                        Message.getRequestMessage(
+                                name,
+                                clientsTable.get(i.getKey()).getInetAddress().toString(),
+                                OSN)
+                );
             }
         }
     }
 
     private void handleMessage(Socket client, Message message) {
-        System.out.println(message.getMessageTypeName()+
-                "<---- ["+message.getNodeId()+"] ("+message.getTimestamp()+")");
+        logReceiveMsg(message);
         switch (message.getMessageType()) {
             case REQUEST:
                 onRequestReceived(message);
@@ -109,21 +120,21 @@ public class Node {
                 break;
         }
     }
-    
-    private void onRequestReceived(Message message){
-       proxTable.put(message.getNodeId(), message);
-       handleCommunicationMessage(message);
+
+    private void onRequestReceived(Message message) {
+        proxTable.put(message.getNodeId(), message);
+        handleCommunicationMessage(message);
     }
-    
-    private void onReplyReceived(Message message){
-       currentTable.put(message.getNodeId(), message);
-       proxTable.put(message.getNodeId(), message);
-       verifyAfterReply();
+
+    private void onReplyReceived(Message message) {
+        currentTable.put(message.getNodeId(), message);
+        proxTable.put(message.getNodeId(), message);
+        verifyAfterReply();
     }
-    
-    private void onFinisheReceivied(){
-       status = NodeStatus.FREE;
-       notifyQueue();
+
+    private void onFinisheReceivied() {
+        status = NodeStatus.FREE;
+        notifyQueue();
     }
 
     private void verifyAfterReply() {
@@ -137,11 +148,20 @@ public class Node {
 
     private void entryCriticalSection() {
         status = NodeStatus.BUSY;
-        sendMessage(serverSocket, Message.getStartMessage());
+        sendMessage(serverSocket, Message.getStartMessage(
+                name,
+                serverSocket.getInetAddress().toString()
+        )
+        );
     }
 
     private void notifyQueue() {
-        messages.forEach((m) -> sendMessage(clientsTable.get(m.getNodeId()), Message.getReplyMessage()));
+        messages.forEach((m) -> sendMessage(
+                clientsTable.get(m.getNodeId()),
+                Message.getReplyMessage(name,
+                        clientsTable.get(m.getNodeId()).getInetAddress().toString()
+                )
+        ));
         messages.clear();
     }
 
@@ -165,22 +185,26 @@ public class Node {
     }
 
     //Sockets and Connections stuffs
-    public void initAddresses(String[] args) {
-        numClients += Integer.parseInt(args[0]);
-        for (int x = 1; x < args.length; x++) {
-            connectToClient(args[x]);
+    public void initAddresses(ArrayList<Client> args) {
+        numClients += args.size();
+        for (Client c : args) {
+            connectToClient(c);
         }
-        waitForClients();
     }
 
-    private void connectToClient(String ipAddress) {
-        try {
-            Socket client = new Socket(ipAddress, ++defaultClientPort);
-            clientsTable.put(ipAddress, client);
-            sendMessage(client, getConnectMessage(client));
-        } catch (IOException ex) {
-            System.out.println("Erro ao criar conexao com " + ipAddress);
-        }
+    private void connectToClient(Client ct) {
+        new Thread(() -> {
+            try {
+                Socket client = new Socket(ct.getIpAddress(), ct.getPort());
+                clientsTable.put(ct.getIpAddress(), client);
+                sendMessage(client, getConnectMessage(client));
+            } catch (Exception ex) {
+                System.out.println(name + " : Erro ao criar conexao com " + ct.getIpAddress() + ":" + ct.getPort() + " : " + ex.getMessage());
+                sleep(5);
+                connectToClient(ct);
+            }
+        }).start();
+
     }
 
     private void waitForClients() {
@@ -190,8 +214,9 @@ public class Node {
                         listenerSocket = new ServerSocket(defaultServerPort);
                         handleNewConnection(listenerSocket.accept());
                     } catch (Exception ex) {
-                        System.out.println("Erro ao conectar   escutar porta"
+                        System.out.println(name + " :Erro ao conectar   escutar porta"
                                 + defaultServerPort + "causa : " + ex.getMessage());
+                        sleep(2);
                     }
                 }
         ).start();
@@ -211,9 +236,10 @@ public class Node {
                             handleMessage(client, message);
                         }
                     } catch (Exception ex) {
-                        System.out.println("Erro ao conectar ao  nó "
+                        System.out.println(name + " :Erro ao conectar ao  no "
                                 + client.getInetAddress()
                                 + " causa : " + ex.getMessage());
+                        sleep(2);
                     }
                 }
         ).start();
@@ -225,25 +251,48 @@ public class Node {
         currentTable.put(message.getNodeId(), null);
     }
 
+    private void logSendMsg(Message message) {
+        System.out.println(name + " " + message.getMessageTypeName()
+                + "----> " + message.getNodeName()
+                + " [" + message.getNodeId()
+                + "] (" + message.getTimestamp() + ")");
+        sleep(2);
+    }
+
     private void sendMessage(Socket client, Message message) {
         try {
-            System.out.println(message.getMessageTypeName()+ 
-                    "----> ["+message.getNodeId()+"] ("+message.getTimestamp()+")");
+            logSendMsg(message);
             ObjectOutputStream ois
                     = new ObjectOutputStream(client.getOutputStream());
             ois.writeObject(message);
-        } catch (IOException ex) {
-            System.out.println("Erro ao enviar msg para "
+        } catch (Exception ex) {
+            System.out.println(name + " :Erro ao enviar msg para "
                     + client.getInetAddress());
+            sleep(2);
         }
     }
 
     private Message getConnectMessage(Socket client) {
-        return Message.getConnectMessage();
+        return Message.getConnectMessage(name, listenerSocket.getInetAddress().toString());
     }
 
     private void sendReply(Socket get) {
-        sendMessage(get, Message.getReplyMessage());
+        sendMessage(get, Message.getReplyMessage(name, listenerSocket.getInetAddress().toString()));
     }
+
+    private void logReceiveMsg(Message message) {
+        System.out.println(name + " " + message.getMessageTypeName()
+                + "<---- " + message.getNodeName() + " [" + message.getNodeId()
+                + "] (" + message.getTimestamp() + ")");
+        sleep(2);
+    }
+
+    private void sleep(int seconds) {
+        try {
+            TimeUnit.SECONDS.sleep(seconds);
+        } catch (Exception e) {
+        }
+    }
+;
 
 }
