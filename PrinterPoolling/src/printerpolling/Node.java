@@ -87,7 +87,7 @@ public class Node {
     private void tryEntryCriticalSection() {
         status = NodeStatus.WAITING;
         OSN = HSN + 1;
-        System.out.println("Atualizei OSN "+ OSN);
+        System.out.println("Atualizei OSN " + OSN);
         sleep(2);
         sendMessageToEntryCriticalSection();
     }
@@ -145,7 +145,6 @@ public class Node {
     private void onFinisheReceivied() {
         System.out.println("Servidor terminou !!!");
         sleep(2);
-        status = NodeStatus.FREE;
         notifyQueue();
     }
 
@@ -188,11 +187,12 @@ public class Node {
             );
         });
         messages.clear();
+        status = NodeStatus.FREE;
     }
 
     private void handleCommunicationMessage(Message message) {
         HSN = HSN > message.getOSN() ? HSN : message.getOSN();
-        System.out.println("Atualizei o HSN "+ HSN);
+        System.out.println("Atualizei o HSN " + HSN);
         sleep(2);
         switch (status) {
             case FREE:
@@ -331,6 +331,7 @@ public class Node {
         try {
             TimeUnit.SECONDS.sleep(seconds);
         } catch (Exception e) {
+            System.out.println("Erro timer ");
         }
     }
 ;
