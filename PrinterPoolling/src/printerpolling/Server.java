@@ -34,13 +34,17 @@ public class Server {
     private void waitForClients() {
         new Thread(
                 () -> {
+
                     try {
                         serverSocket = new ServerSocket(defaultServerPort);
-                        handleNewConnection(serverSocket.accept());
+                        while (true) {
+                            handleNewConnection(serverSocket.accept());
+                        }
                     } catch (Exception ex) {
                         System.out.println("Erro ao conectar   escutar porta"
                                 + defaultServerPort + "causa : " + ex.getMessage());
                     }
+
                 }
         ).start();
 
@@ -50,6 +54,7 @@ public class Server {
         new Thread(
                 () -> {
                     try {
+                        System.out.println(client.getInetAddress().toString() + " se connectou");
                         ObjectInputStream ois
                         = new ObjectInputStream(client.getInputStream());
                         Message message = null;
@@ -76,7 +81,7 @@ public class Server {
                 System.out.println(ex.getMessage());
             }
         }
-        sendMessage(client, Message.getFinishedMessage("Server",""));
+        sendMessage(client, Message.getFinishedMessage("Server", "Server"));
     }
 
     private void sendMessage(Socket client, Message message) {

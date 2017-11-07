@@ -66,60 +66,21 @@ public class PrinterPolling {
         }).start();
 
         new Thread(() -> {
-            Node node = new Node("node1", basePort + 8001, new Client("127.0.0.1", basePort + 8000));
+            Node node = new Node("node1", basePort + 8002, new Client("10.2.5.3", basePort + 8000));
             node.initAddresses(new ArrayList<Client>(Arrays.asList(
-                    new Client("127.0.0.1", basePort + 8002),
-                    new Client("127.0.0.1", basePort + 8003),
-                    new Client("127.0.0.1", basePort + 8004),
-                    new Client("127.0.0.1", basePort + 8005)
+                    new Client("10.2.5.1", basePort + 8001)
             ))
             );
         }).start();
 
         new Thread(() -> {
-            Node node2 = new Node("node2", basePort + 8002, new Client("127.0.0.1", basePort + 8000));
-            node2.initAddresses(new ArrayList<Client>(Arrays.asList(
-                    new Client("127.0.0.1", basePort + 8001),
-                    new Client("127.0.0.1", basePort + 8003),
-                    new Client("127.0.0.1", basePort + 8004),
-                    new Client("127.0.0.1", basePort + 8005)
+            Node node = new Node("node2", basePort + 8001, new Client("10.2.5.3", basePort + 8000));
+            node.initAddresses(new ArrayList<Client>(Arrays.asList(
+                    new Client("10.2.5.2", basePort + 8002)
             ))
             );
         }).start();
 
-        new Thread(() -> {
-            Node node3 = new Node("node3", basePort + 8003, new Client("127.0.0.1", basePort + 8000));
-            node3.initAddresses(new ArrayList<Client>(Arrays.asList(
-                    new Client("127.0.0.1", basePort + 8001),
-                    new Client("127.0.0.1", basePort + 8002),
-                    new Client("127.0.0.1", basePort + 8004),
-                    new Client("127.0.0.1", basePort + 8005)
-            ))
-            );
-
-        }).start();
-
-        new Thread(() -> {
-            Node node4 = new Node("node4", 8004, new Client("127.0.0.1", basePort + 8000));
-            node4.initAddresses(new ArrayList<Client>(Arrays.asList(
-                    new Client("127.0.0.1", basePort + 8001),
-                    new Client("127.0.0.1", basePort + 8002),
-                    new Client("127.0.0.1", basePort + 8003),
-                    new Client("127.0.0.1", basePort + 8005)
-            ))
-            );
-        }).start();
-
-        new Thread(() -> {
-            Node node5 = new Node("node5", 8005, new Client("127.0.0.1", basePort + 8000));
-            node5.initAddresses(new ArrayList<Client>(Arrays.asList(
-                    new Client("127.0.0.1", basePort + 8001),
-                    new Client("127.0.0.1", basePort + 8002),
-                    new Client("127.0.0.1", basePort + 8003),
-                    new Client("127.0.0.1", basePort + 8004)
-            ))
-            );
-        }).start();
     }
 
 }

@@ -117,4 +117,11 @@ public class Message implements Serializable {
     public String getMessageTypeName() {
         return messageType.name();
     }
+
+    @Override
+    public String toString() {
+        return "Message{" + "messageType=" + messageType + ", timestamp=" + timestamp + ", incrementedStamp=" + incrementedStamp + ", nodeId=" + nodeId + ", OSN=" + OSN + ", nodeName=" + nodeName + '}';
+    }
+    
+    
 }

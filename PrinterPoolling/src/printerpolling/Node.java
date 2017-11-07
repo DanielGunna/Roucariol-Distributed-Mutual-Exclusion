@@ -50,8 +50,7 @@ public class Node {
         clientsTable = new HashMap<>();
         defaultServerPort = port;
         initServerSocket(server);
-       // waitForClients();
-       // verifyCanAccess();
+        waitForClients();
     }
 
     private void initServerSocket(Client server) {
@@ -69,10 +68,12 @@ public class Node {
         new Thread(
                 () -> {
                     while (true) {
-                        if (getRamdomNumber() > 0.5) {
-                            System.out.println(name + " Vai tentar acessar o recurso");
-                            sleep(2);
-                            tryEntryCriticalSection();
+                        if (status == NodeStatus.FREE) {
+                            if (getRamdomNumber() > 0.5) {
+                                System.out.println(name + " Vai tentar acessar o recurso");
+                                sleep(2);
+                                tryEntryCriticalSection();
+                            }
                         }
                     }
                 }
@@ -86,6 +87,8 @@ public class Node {
     private void tryEntryCriticalSection() {
         status = NodeStatus.WAITING;
         OSN = HSN + 1;
+        System.out.println("Atualizei OSN "+ OSN);
+        sleep(2);
         sendMessageToEntryCriticalSection();
     }
 
@@ -93,6 +96,7 @@ public class Node {
         currentTable = (HashMap<String, Message>) proxTable.clone();
         for (Map.Entry<String, Message> i : currentTable.entrySet()) {
             if (i.getValue() == null || i.getValue().getMessageType() == MessageType.REQUEST) {
+                System.out.println("Enviando Request para " + i.getKey());
                 sendMessage(clientsTable.get(i.getKey()),
                         Message.getRequestMessage(
                                 name,
@@ -104,6 +108,7 @@ public class Node {
     }
 
     private void handleMessage(Socket client, Message message) {
+        System.out.println("Recebeu : " + message.toString() + " de " + client.getInetAddress().toString());
         logReceiveMsg(message);
         switch (message.getMessageType()) {
             case REQUEST:
@@ -123,31 +128,46 @@ public class Node {
 
     private void onRequestReceived(Message message) {
         proxTable.put(message.getNodeId(), message);
+        System.out.println("Prox table depois de receber um request " + proxTable.toString());
+        sleep(2);
         handleCommunicationMessage(message);
     }
 
     private void onReplyReceived(Message message) {
         currentTable.put(message.getNodeId(), message);
         proxTable.put(message.getNodeId(), message);
+        System.out.println("Current table depois de um reply " + clientsTable.toString());
+        System.out.println("Prox table depois de um reply " + proxTable.toString());
+        sleep(2);
         verifyAfterReply();
     }
 
     private void onFinisheReceivied() {
+        System.out.println("Servidor terminou !!!");
+        sleep(2);
         status = NodeStatus.FREE;
         notifyQueue();
     }
 
     private void verifyAfterReply() {
+        System.out.println("Verficando se pode entrar na regiao critica...");
+        sleep(2);
         for (Map.Entry<String, Message> i : currentTable.entrySet()) {
             if (i.getValue() == null || i.getValue().getMessageType() == MessageType.REQUEST) {
+                System.out.println("Ainda nao pode falta resposta do no " + i.getKey());
+                sleep(2);
                 return;
             }
         }
+        System.out.println("Pode entrar na regiao critica");
+        sleep(2);
         entryCriticalSection();
     }
 
     private void entryCriticalSection() {
         status = NodeStatus.BUSY;
+        System.out.println("Enviando mensagem para server");
+        sleep(2);
         sendMessage(serverSocket, Message.getStartMessage(
                 name,
                 serverSocket.getInetAddress().toString()
@@ -156,28 +176,45 @@ public class Node {
     }
 
     private void notifyQueue() {
-        messages.forEach((m) -> sendMessage(
-                clientsTable.get(m.getNodeId()),
-                Message.getReplyMessage(name,
-                        clientsTable.get(m.getNodeId()).getInetAddress().toString()
-                )
-        ));
+        System.out.println("Notificando fila");
+        sleep(2);
+        messages.forEach((m) -> {
+            System.out.println("Enviando reply para " + m.getNodeId());
+            sendMessage(
+                    clientsTable.get(m.getNodeId()),
+                    Message.getReplyMessage(name,
+                            clientsTable.get(m.getNodeId()).getInetAddress().toString()
+                    )
+            );
+        });
         messages.clear();
     }
 
     private void handleCommunicationMessage(Message message) {
         HSN = HSN > message.getOSN() ? HSN : message.getOSN();
+        System.out.println("Atualizei o HSN "+ HSN);
+        sleep(2);
         switch (status) {
             case FREE:
+                System.out.println("Recebi um request, mas estou livre vou mandar reply");
+                sleep(2);
                 sendReply(clientsTable.get(message.getNodeId()));
                 break;
             case BUSY:
+                System.out.println("Recebi um request, vou add na fila");
+                sleep(2);
                 messages.add(message);
                 break;
             case WAITING:
+                System.out.println("Recebi um request,estou esperando");
+                sleep(2);
                 if (OSN < message.getOSN()) {
+                    System.out.println("Meu OSN é menor " + OSN + " " + message.getOSN());
+                    sleep(2);
                     messages.add(message);
                 } else {
+                    System.out.println("Meu OSN é maior " + OSN + " " + message.getOSN());
+                    sleep(2);
                     sendReply(clientsTable.get(message.getNodeId()));
                 }
                 break;
@@ -212,7 +249,9 @@ public class Node {
                 () -> {
                     try {
                         listenerSocket = new ServerSocket(defaultServerPort);
-                        handleNewConnection(listenerSocket.accept());
+                        while (true) {
+                            handleNewConnection(listenerSocket.accept());
+                        }
                     } catch (Exception ex) {
                         System.out.println(name + " :Erro ao conectar   escutar porta"
                                 + defaultServerPort + "causa : " + ex.getMessage());
@@ -246,6 +285,7 @@ public class Node {
     }
 
     private void handleConnectMessage(Socket client, Message message) {
+        System.out.println("Nova conexao de " + client.getInetAddress().toString());
         clientsTable.put(message.getNodeId(), client);
         proxTable.put(message.getNodeId(), null);
         currentTable.put(message.getNodeId(), null);
