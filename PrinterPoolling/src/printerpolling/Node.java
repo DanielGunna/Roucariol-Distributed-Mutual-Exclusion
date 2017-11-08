@@ -105,12 +105,14 @@ public class Node {
     private void sendMessageToEntryCriticalSection() {
         currentTable = (HashMap<String, Message>) proxTable.clone();
         sleep(10);
+        boolean coming = true;
         if (currentTable.size() == 0) {
             entryCriticalSection();
             return;
         }
-        for (Map.Entry<String, Message> i : currentTable.entrySet()) {
+        for (Map.Entry<String, Message> i : proxTable.entrySet()) {
             if (i.getValue() == null || i.getValue().getMessageType() == MessageType.REQUEST) {
+                coming = false;
                 System.out.println("Enviando Request para " + i.getKey());
                 sendMessage(clientsTable.get(i.getKey()),
                         Message.getRequestMessage(
@@ -119,6 +121,9 @@ public class Node {
                                 OSN)
                 );
             }
+        }
+        if(coming){
+            entryCriticalSection();
         }
     }
 
