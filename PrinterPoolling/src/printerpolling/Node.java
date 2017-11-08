@@ -257,11 +257,6 @@ public class Node {
                     System.out.println("Meu OSN é maior " + OSN + " " + message.getOSN());
                     sleep(2);
                     sendReply(clientsTable.get(message.getNodeId()));
-                    for ( Message m : messages ){
-                        if ( message.getNodeId().equals(m.getNodeId()) ){
-                            messages.remove(m);
-                        }
-                    }
                 }
                 break;
         }

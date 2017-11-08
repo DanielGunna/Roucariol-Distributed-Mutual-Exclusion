@@ -60,7 +60,7 @@ public class PrinterPolling {
     }
 
     private static void test() {
-        int basePort = 10;
+        int basePort = 20;
         new Thread(() -> {
             new Server(basePort + 8000);
         }).start();
