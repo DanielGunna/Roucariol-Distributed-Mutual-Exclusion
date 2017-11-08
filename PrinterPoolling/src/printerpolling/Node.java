@@ -38,7 +38,6 @@ public class Node {
     private String name;
     private Message lastMessage;
     private ObjectOutputStream ois;
-    private ArrayList<Message> alreadyReplied;
 
     public Node(String name, int port, Client server) {
         this.name = name;
@@ -46,7 +45,6 @@ public class Node {
         HSN = System.currentTimeMillis();
         OSN = 0;
         status = NodeStatus.FREE;
-        alreadyReplied = new ArrayList<>();
         currentTable = new HashMap<>();
         messages = new ArrayList<>();
         clientsTable = new HashMap<>();
@@ -204,17 +202,14 @@ public class Node {
         System.out.println("Notificando fila");
         sleep(2);
         messages.forEach((m) -> {
+            System.out.println("Enviando reply para " + m.getNodeId());
             currentTable.put(m.getNodeId(),Message.getRequestMessage(m.getNodeId(), m.getNodeName(), m.getOSN()));
-            
-            if ( !alreadyReplied.contains(m) ){
-                System.out.println("Enviando reply para " + m.getNodeId());
-                sendMessage(
-                        clientsTable.get(m.getNodeId()),
-                        Message.getReplyMessage(name,
-                                clientsTable.get(m.getNodeId()).getInetAddress().toString()
-                        )
-                );
-            }
+            sendMessage(
+                    clientsTable.get(m.getNodeId()),
+                    Message.getReplyMessage(name,
+                            clientsTable.get(m.getNodeId()).getInetAddress().toString()
+                    )
+            );
         });
         for(Map.Entry<String,Message> i : currentTable.entrySet()){
             boolean resp = true;
@@ -249,7 +244,7 @@ public class Node {
             case BUSY:
                 System.out.println("Recebi um request, vou add na fila");
                 sleep(2);
-                alreadyReplied.add(message);//Ja foi enfileirado
+                //Ja foi enfileirado
                 break;
             case WAITING:
                 System.out.println("Recebi um request,estou esperando");
@@ -262,7 +257,6 @@ public class Node {
                     System.out.println("Meu OSN é maior " + OSN + " " + message.getOSN());
                     sleep(2);
                     sendReply(clientsTable.get(message.getNodeId()));
-                    alreadyReplied.add(message);
                 }
                 break;
         }
