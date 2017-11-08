@@ -30,6 +30,7 @@ public class Node {
     private HashMap<String, Socket> clientsTable;
     private final int defaultServerPort;
     private HashMap<String, Message> currentTable;
+    private HashMap<String,ObjectOutputStream> streams;
     private HashMap<String, Message> proxTable;
     private ArrayList<Message> messages;
     private static final String defaultIp = "127.0.0.1";
@@ -37,6 +38,7 @@ public class Node {
     private long HSN, OSN;
     private String name;
     private Message lastMessage;
+    private ObjectOutputStream ois;
 
     public Node(String name, int port, Client server) {
         this.name = name;
@@ -48,6 +50,7 @@ public class Node {
         proxTable = new HashMap<>();
         messages = new ArrayList<>();
         clientsTable = new HashMap<>();
+        streams = new HashMap<>();
         defaultServerPort = port;
         initServerSocket(server);
         verifyCanAccess();
@@ -101,6 +104,7 @@ public class Node {
 
     private void sendMessageToEntryCriticalSection() {
         currentTable = (HashMap<String, Message>) proxTable.clone();
+        sleep(10);
         if (currentTable.size() == 0) {
             entryCriticalSection();
             return;
@@ -286,7 +290,7 @@ public class Node {
                         = new ObjectInputStream(client.getInputStream());
                         Message message = null;
                         while ((message = ((Message) ois.readObject())) != null) {
-                            System.out.println("Nova iteracao handleNewConnetion");
+                            System.out.println("Nova iteracao handleNewConnetion" + client.getInetAddress().toString());
                             message.setNodeId(client.getInetAddress().toString());
                             lastMessage = message;
                             handleMessage(client, message);
@@ -322,9 +326,11 @@ public class Node {
     private void sendMessage(Socket client, Message message) {
         try {
             logSendMsg(message);
-            ObjectOutputStream ois
-                    = new ObjectOutputStream(client.getOutputStream());
-            ois.writeObject(message);
+            
+            if(!streams.containsKey(client.getInetAddress().toString())) 
+                streams.put(client.getInetAddress().toString(),new ObjectOutputStream(client.getOutputStream()));
+            streams.get(client.getInetAddress().toString()).writeObject(message);
+           // streams.get(client.getInetAddress().toString()).reset();
         } catch (Exception ex) {
             System.out.println(name + " :Erro ao enviar msg para "
                     + client.getInetAddress());
@@ -337,6 +343,7 @@ public class Node {
     }
 
     private void sendReply(Socket get) {
+        System.out.println("Enviandio reply para "+get.getInetAddress().toString());
         sendMessage(get, Message.getReplyMessage(name, listenerSocket.getInetAddress().toString()));
     }
 
