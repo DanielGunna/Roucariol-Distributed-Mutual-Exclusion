@@ -43,7 +43,7 @@ public class Node {
     public Node(String name, int port, Client server) {
         this.name = name;
         numClients = 1;
-        HSN = 0;
+        HSN = System.currentTimeMillis();
         OSN = 0;
         status = NodeStatus.FREE;
         currentTable = new HashMap<>();
@@ -204,6 +204,21 @@ public class Node {
                     )
             );
         });
+        for(Map.Entry<String,Message> i : currentTable.entrySet()){
+            boolean resp = true;
+            for(Message m : messages){
+                if(m.getNodeId().equals(i.getKey()))
+                   resp = false; 
+            }
+            if(resp && i.getValue().getMessageType() == MessageType.REQUEST){
+              sendMessage(
+                    clientsTable.get(i.getValue().getNodeId()),
+                    Message.getReplyMessage(name,
+                            clientsTable.get(i.getValue().getNodeId()).getInetAddress().toString()
+                    )
+            );
+            }
+        }
         messages.clear();
         status = NodeStatus.FREE;
         System.out.println("Saindo de notifyQueue");
