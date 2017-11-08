@@ -244,7 +244,7 @@ public class Node {
             case BUSY:
                 System.out.println("Recebi um request, vou add na fila");
                 sleep(2);
-                messages.add(message);
+                //Ja foi enfileirado
                 break;
             case WAITING:
                 System.out.println("Recebi um request,estou esperando");
@@ -252,11 +252,16 @@ public class Node {
                 if (OSN < message.getOSN()) {
                     System.out.println("Meu OSN é menor " + OSN + " " + message.getOSN());
                     sleep(2);
-                    messages.add(message);
+                    //messages.add(message);
                 } else {
                     System.out.println("Meu OSN é maior " + OSN + " " + message.getOSN());
                     sleep(2);
                     sendReply(clientsTable.get(message.getNodeId()));
+                    for ( Message m : messages ){
+                        if ( message.getNodeId().equals(m.getNodeId()) ){
+                            messages.remove(m);
+                        }
+                    }
                 }
                 break;
         }
