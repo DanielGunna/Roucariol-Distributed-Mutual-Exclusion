@@ -60,7 +60,7 @@ public class Node {
             serverSocket = new Socket(server.getIpAddress(), server.getPort());
             handleNewConnection(serverSocket);
         } catch (Exception ex) {
-            System.out.println(name + " :Erro ao conectar com servidor " + ex.getMessage());
+            System.out.println(name + " :Error connecting to server. Message: " + ex.getMessage());
             sleep(2);
         }
     }
@@ -70,14 +70,13 @@ public class Node {
         new Thread(
                 () -> {
                     while (true) {
-                        System.out.println("Rodando rodand");
+                        System.out.println("Node Status = " + status.toString());
                         sleep(2);
                         if (status == NodeStatus.FREE) {
-                            System.out.println("Estou livre");
+                            System.out.println("Node Status = " + status.toString());
                             if (getRamdomNumber() > 0.5) {
 
                                 new Thread(() -> {
-                                    System.out.println(name + " Vai tentar acessar o recurso");
                                     tryEntryCriticalSection();
                                 }).start();
 
@@ -95,7 +94,7 @@ public class Node {
     private void tryEntryCriticalSection() {
         status = NodeStatus.WAITING;
         OSN = HSN + 1;
-        System.out.println("Atualizei OSN " + OSN);
+        System.out.println("Updated OSN = " + OSN);
         sleep(2);
         sendMessageToEntryCriticalSection();
     }
@@ -114,7 +113,7 @@ public class Node {
         for (Map.Entry<String, Message> i : currentTable.entrySet()) {
             if (i.getValue() == null || i.getValue().getMessageType() == MessageType.REQUEST) {
                 coming = false;
-                System.out.println("Enviando Request para " + i.getKey());
+                System.out.println("Sending Request to " + i.getKey());
                 sendMessage(clientsTable.get(i.getKey()),
                         Message.getRequestMessage(
                                 name,
@@ -130,7 +129,7 @@ public class Node {
     }
 
     private void handleMessage(Socket client, Message message) {
-        System.out.println("Recebeu : " + message.toString() + " de " + client.getInetAddress().toString());
+        System.out.println("Received: " + message.toString() + " from " + client.getInetAddress().toString());
         logReceiveMsg(message);
         switch (message.getMessageType()) {
             case REQUEST:
@@ -144,10 +143,8 @@ public class Node {
                 break;
             case FINISHED:
                 onFinisheReceivied();
-                System.out.println("Indo para o break");
                 break;
         }
-        System.out.println("Saindo de handle msg");
     }
 
     private void onRequestReceived(Message message) {
@@ -163,25 +160,24 @@ public class Node {
     }
 
     private void onFinisheReceivied() {
-        System.out.println("Servidor terminou !!!");
+        System.out.println("Server has Finished");
         sleep(2);
         notifyQueue();
-        System.out.println("Saindo de onFinished");
     }
     
 
     private void verifyAfterReply() {
         if(status == NodeStatus.WAITING){
-            System.out.println("Verficando se pode entrar na regiao critica...");
+            System.out.println("Verifying if I can enter Critical Section");
             sleep(2);
             for (Map.Entry<String, Message> i : currentTable.entrySet()) {
                 if (i.getValue() == null || i.getValue().getMessageType() == MessageType.REQUEST) {
-                    System.out.println("Ainda nao pode falta resposta do no " + i.getKey());
+                    System.out.println("Still cannot enter, missing reply from " + i.getKey());
                     sleep(2);
                     return;
                 }
             }
-            System.out.println("Pode entrar na regiao critica");
+            System.out.println("I have received every reply already. Entering critical section...");
             sleep(2);
             entryCriticalSection();
         }
@@ -189,7 +185,6 @@ public class Node {
 
     private void entryCriticalSection() {
         status = NodeStatus.BUSY;
-        System.out.println("Enviando mensagem para server");
         sleep(2);
         sendMessage(serverSocket, Message.getStartMessage(
                 name,
@@ -199,10 +194,9 @@ public class Node {
     }
 
     private void notifyQueue() {
-        System.out.println("Notificando fila");
+        System.out.println("Time to reply pending requests...");
         sleep(2);
         messages.forEach((m) -> {
-            System.out.println("Enviando reply para " + m.getNodeId());
             currentTable.put(m.getNodeId(),Message.getRequestMessage(m.getNodeId(), m.getNodeName(), m.getOSN()));
             sendMessage(
                     clientsTable.get(m.getNodeId()),
@@ -228,33 +222,29 @@ public class Node {
         }
         messages.clear();
         status = NodeStatus.FREE;
-        System.out.println("Saindo de notifyQueue");
+        System.out.println("Finished replying to pending requests.");
     }
 
     private void handleCommunicationMessage(Message message) {
         HSN = HSN > message.getOSN() ? HSN : message.getOSN();
-        System.out.println("Atualizei o HSN " + HSN);
+        System.out.println("Node Status = " + status.toString());
+        System.out.println("Updated HSN = " + HSN);
         sleep(2);
         switch (status) {
             case FREE:
-                System.out.println("Recebi um request, mas estou livre vou mandar reply");
                 sleep(2);
                 sendReply(clientsTable.get(message.getNodeId()));
                 break;
             case BUSY:
-                System.out.println("Recebi um request, vou add na fila");
-                sleep(2);
-                //Ja foi enfileirado
+                sleep(2); //Already in Queue
                 break;
             case WAITING:
-                System.out.println("Recebi um request,estou esperando");
                 sleep(2);
                 if (OSN < message.getOSN()) {
-                    System.out.println("Meu OSN é menor " + OSN + " " + message.getOSN());
+                    System.out.println("My OSN is smaller = " + OSN + " " + message.getOSN());
                     sleep(2);
-                    //messages.add(message);
                 } else {
-                    System.out.println("Meu OSN é maior " + OSN + " " + message.getOSN());
+                    System.out.println("My OSN is bigger = " + OSN + " " + message.getOSN());
                     sleep(2);
                     sendReply(clientsTable.get(message.getNodeId()));
                 }
@@ -277,7 +267,7 @@ public class Node {
                 clientsTable.put(ct.getIpAddress(), client);
                 sendMessage(client, getConnectMessage(client));
             } catch (Exception ex) {
-                System.out.println(name + " : Erro ao criar conexao com " + ct.getIpAddress() + ":" + ct.getPort() + " : " + ex.getMessage());
+                System.out.println(name + " : Error when connecting to  " + ct.getIpAddress() + ":" + ct.getPort() + ". Message = " + ex.getMessage());
                 sleep(5);
                 connectToClient(ct);
             }
@@ -294,8 +284,8 @@ public class Node {
                             handleNewConnection(listenerSocket.accept());
                         }
                     } catch (Exception ex) {
-                        System.out.println(name + " :Erro ao conectar   escutar porta"
-                                + defaultServerPort + "causa : " + ex.getMessage());
+                        System.out.println(name + " :Error when connecting to port:"
+                                + defaultServerPort + ". Message: " + ex.getMessage());
                         sleep(2);
                     }
                 }
@@ -312,18 +302,14 @@ public class Node {
                         = new ObjectInputStream(client.getInputStream());
                         Message message = null;
                         while ((message = ((Message) ois.readObject())) != null) {
-                            System.out.println("Nova iteracao handleNewConnetion" + client.getInetAddress().toString());
                             message.setNodeId(client.getInetAddress().toString());
                             lastMessage = message;
                             handleMessage(client, message);
-                            System.out.println("Terminando iteração handleNewConnection");
                         }
-
-                        System.out.println("Sai do while");
                     } catch (Exception ex) {
-                        System.out.println(name + " :Erro ao conectar ao  no "
+                        System.out.println(name + " :Error when connecting to "
                                 + client.getInetAddress()
-                                + " causa : " + ex.getMessage());
+                                + ". Message: " + ex.getMessage());
                         sleep(2);
                     }
                 }
@@ -331,7 +317,7 @@ public class Node {
     }
 
     private void handleConnectMessage(Socket client, Message message) {
-        System.out.println("Nova conexao de " + client.getInetAddress().toString());
+        System.out.println("New connection from " + client.getInetAddress().toString());
         clientsTable.put(message.getNodeId(), client);
         currentTable.put(message.getNodeId(), null);
     }
@@ -353,7 +339,7 @@ public class Node {
             streams.get(client.getInetAddress().toString()).writeObject(message);
            // streams.get(client.getInetAddress().toString()).reset();
         } catch (Exception ex) {
-            System.out.println(name + " :Erro ao enviar msg para "
+            System.out.println(name + " :Error sending message to "
                     + client.getInetAddress());
             sleep(2);
         }
@@ -364,7 +350,6 @@ public class Node {
     }
 
     private void sendReply(Socket get) {
-        System.out.println("Enviandio reply para "+get.getInetAddress().toString());
         sendMessage(get, Message.getReplyMessage(name, listenerSocket.getInetAddress().toString()));
     }
 
@@ -379,7 +364,7 @@ public class Node {
         try {
             TimeUnit.SECONDS.sleep(seconds);
         } catch (Exception e) {
-            System.out.println("Erro timer ");
+            System.out.println("Timer Error when Sleeping");
         }
     }
 ;
