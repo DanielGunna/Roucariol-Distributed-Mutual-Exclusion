@@ -50,6 +50,7 @@ public class Node {
         clientsTable = new HashMap<>();
         defaultServerPort = port;
         initServerSocket(server);
+        verifyCanAccess();
         waitForClients();
     }
 
@@ -68,11 +69,17 @@ public class Node {
         new Thread(
                 () -> {
                     while (true) {
+                        System.out.println("Rodando rodand");
+                        sleep(2);
                         if (status == NodeStatus.FREE) {
+                            System.out.println("Estou livre");
                             if (getRamdomNumber() > 0.5) {
-                                System.out.println(name + " Vai tentar acessar o recurso");
-                                sleep(2);
-                                tryEntryCriticalSection();
+
+                                new Thread(() -> {
+                                    System.out.println(name + " Vai tentar acessar o recurso");
+                                    tryEntryCriticalSection();
+                                }).start();
+
                             }
                         }
                     }
@@ -94,6 +101,10 @@ public class Node {
 
     private void sendMessageToEntryCriticalSection() {
         currentTable = (HashMap<String, Message>) proxTable.clone();
+        if (currentTable.size() == 0) {
+            entryCriticalSection();
+            return;
+        }
         for (Map.Entry<String, Message> i : currentTable.entrySet()) {
             if (i.getValue() == null || i.getValue().getMessageType() == MessageType.REQUEST) {
                 System.out.println("Enviando Request para " + i.getKey());
@@ -122,8 +133,10 @@ public class Node {
                 break;
             case FINISHED:
                 onFinisheReceivied();
+                System.out.println("Indo para o break");
                 break;
         }
+        System.out.println("Saindo de handle msg");
     }
 
     private void onRequestReceived(Message message) {
@@ -146,6 +159,7 @@ public class Node {
         System.out.println("Servidor terminou !!!");
         sleep(2);
         notifyQueue();
+        System.out.println("Saindo de onFinished");
     }
 
     private void verifyAfterReply() {
@@ -188,6 +202,7 @@ public class Node {
         });
         messages.clear();
         status = NodeStatus.FREE;
+        System.out.println("Saindo de notifyQueue");
     }
 
     private void handleCommunicationMessage(Message message) {
@@ -266,14 +281,19 @@ public class Node {
         new Thread(
                 () -> {
                     try {
+
                         ObjectInputStream ois
                         = new ObjectInputStream(client.getInputStream());
                         Message message = null;
                         while ((message = ((Message) ois.readObject())) != null) {
+                            System.out.println("Nova iteracao handleNewConnetion");
                             message.setNodeId(client.getInetAddress().toString());
                             lastMessage = message;
                             handleMessage(client, message);
+                            System.out.println("Terminando iteração handleNewConnection");
                         }
+
+                        System.out.println("Sai do while");
                     } catch (Exception ex) {
                         System.out.println(name + " :Erro ao conectar ao  no "
                                 + client.getInetAddress()
