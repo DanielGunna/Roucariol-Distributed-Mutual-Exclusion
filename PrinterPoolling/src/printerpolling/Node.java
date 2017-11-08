@@ -31,7 +31,6 @@ public class Node {
     private final int defaultServerPort;
     private HashMap<String, Message> currentTable;
     private HashMap<String,ObjectOutputStream> streams;
-    private HashMap<String, Message> proxTable;
     private ArrayList<Message> messages;
     private static final String defaultIp = "127.0.0.1";
     private NodeStatus status;
@@ -47,7 +46,6 @@ public class Node {
         OSN = 0;
         status = NodeStatus.FREE;
         currentTable = new HashMap<>();
-        proxTable = new HashMap<>();
         messages = new ArrayList<>();
         clientsTable = new HashMap<>();
         streams = new HashMap<>();
@@ -103,14 +101,17 @@ public class Node {
     }
 
     private void sendMessageToEntryCriticalSection() {
-        currentTable = (HashMap<String, Message>) proxTable.clone();
         sleep(10);
         boolean coming = true;
+        
+        // If I am the Only One...
         if (currentTable.size() == 0) {
             entryCriticalSection();
             return;
         }
-        for (Map.Entry<String, Message> i : proxTable.entrySet()) {
+        
+        // Does anyone else ?
+        for (Map.Entry<String, Message> i : currentTable.entrySet()) {
             if (i.getValue() == null || i.getValue().getMessageType() == MessageType.REQUEST) {
                 coming = false;
                 System.out.println("Enviando Request para " + i.getKey());
@@ -123,6 +124,7 @@ public class Node {
             }
         }
         if(coming){
+            //currentTable = (HashMap<String, Message>) proxTable.clone();
             entryCriticalSection();
         }
     }
@@ -149,17 +151,13 @@ public class Node {
     }
 
     private void onRequestReceived(Message message) {
-        proxTable.put(message.getNodeId(), message);
-        System.out.println("Prox table depois de receber um request " + proxTable.toString());
+        messages.add(message);
         sleep(2);
         handleCommunicationMessage(message);
     }
 
     private void onReplyReceived(Message message) {
         currentTable.put(message.getNodeId(), message);
-        proxTable.put(message.getNodeId(), message);
-        System.out.println("Current table depois de um reply " + clientsTable.toString());
-        System.out.println("Prox table depois de um reply " + proxTable.toString());
         sleep(2);
         verifyAfterReply();
     }
@@ -170,20 +168,23 @@ public class Node {
         notifyQueue();
         System.out.println("Saindo de onFinished");
     }
+    
 
     private void verifyAfterReply() {
-        System.out.println("Verficando se pode entrar na regiao critica...");
-        sleep(2);
-        for (Map.Entry<String, Message> i : currentTable.entrySet()) {
-            if (i.getValue() == null || i.getValue().getMessageType() == MessageType.REQUEST) {
-                System.out.println("Ainda nao pode falta resposta do no " + i.getKey());
-                sleep(2);
-                return;
+        if(status == NodeStatus.WAITING){
+            System.out.println("Verficando se pode entrar na regiao critica...");
+            sleep(2);
+            for (Map.Entry<String, Message> i : currentTable.entrySet()) {
+                if (i.getValue() == null || i.getValue().getMessageType() == MessageType.REQUEST) {
+                    System.out.println("Ainda nao pode falta resposta do no " + i.getKey());
+                    sleep(2);
+                    return;
+                }
             }
+            System.out.println("Pode entrar na regiao critica");
+            sleep(2);
+            entryCriticalSection();
         }
-        System.out.println("Pode entrar na regiao critica");
-        sleep(2);
-        entryCriticalSection();
     }
 
     private void entryCriticalSection() {
@@ -202,6 +203,7 @@ public class Node {
         sleep(2);
         messages.forEach((m) -> {
             System.out.println("Enviando reply para " + m.getNodeId());
+            currentTable.put(m.getNodeId(),Message.getRequestMessage(m.getNodeId(), m.getNodeName(), m.getOSN()));
             sendMessage(
                     clientsTable.get(m.getNodeId()),
                     Message.getReplyMessage(name,
@@ -331,7 +333,6 @@ public class Node {
     private void handleConnectMessage(Socket client, Message message) {
         System.out.println("Nova conexao de " + client.getInetAddress().toString());
         clientsTable.put(message.getNodeId(), client);
-        proxTable.put(message.getNodeId(), null);
         currentTable.put(message.getNodeId(), null);
     }
 
