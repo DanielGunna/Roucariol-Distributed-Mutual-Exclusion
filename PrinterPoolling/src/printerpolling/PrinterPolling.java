@@ -65,21 +65,21 @@ public class PrinterPolling {
             new Server(basePort + 8000);
         }).start();
 
-        new Thread(() -> {
-            Node node = new Node("node1", basePort + 8002, new Client("10.2.5.3", basePort + 8000));
-            node.initAddresses(new ArrayList<Client>(Arrays.asList(
-                    new Client("10.2.5.1", basePort + 8001)
-            ))
-            );
-        }).start();
-
-        new Thread(() -> {
-            Node node = new Node("node2", basePort + 8001, new Client("10.2.5.3", basePort + 8000));
-            node.initAddresses(new ArrayList<Client>(Arrays.asList(
-                    new Client("10.2.5.2", basePort + 8002)
-            ))
-            );
-        }).start();
+//        new Thread(() -> {
+//            Node node = new Node("node1", basePort + 8002, new Client("10.2.5.3", basePort + 8000));
+//            node.initAddresses(new ArrayList<Client>(Arrays.asList(
+//                    new Client("10.2.5.1", basePort + 8001)
+//            ))
+//            );
+//        }).start();
+//
+//        new Thread(() -> {
+//            Node node = new Node("node2", basePort + 8001, new Client("10.2.5.3", basePort + 8000));
+//            node.initAddresses(new ArrayList<Client>(Arrays.asList(
+//                    new Client("10.2.5.2", basePort + 8002)
+//            ))
+//            );
+//        }).start();
 
     }
 

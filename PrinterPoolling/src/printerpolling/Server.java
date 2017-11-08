@@ -63,16 +63,20 @@ public class Server {
                             lastMessage = message;
                             handleMessage(client, message);
                         }
+                        ois.close();
                     } catch (Exception ex) {
-                        System.out.println("Erro ao conectar ao  nó "
+                        System.out.println("Erro ao escutaR ao  nó "
                                 + client.getInetAddress()
                                 + " causa : " + ex.getMessage());
+                        //ex.printStackTrace();
+                        //handleNewConnection(client);
                     }
                 }
         ).start();
     }
 
     private void handleMessage(Socket client, Message message) {
+        System.out.println("Tratando msg de "+ client.getInetAddress().toString() +" "+ message.toString());
         for (int x = 0; x < 10; x++) {
             System.out.println("Working from : [" + message.getNodeName() + "](" + message.getNodeId() + "): " + +lastMessage.getTimestamp() + x);
             try {
