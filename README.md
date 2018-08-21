@@ -1,7 +1,7 @@
 # Roucariol and Carvalho
 #### (Distributed Mutual Exclusion Algorithm)
 
-Roucariol and Carvalho is an evolution of the *Ricart and Agrawala* mutual exclusion algorithm. Roucariol considers that, if a client have already given permission for you to run, it is not necessary to ask permission again. Therefore, a system to track this *allowance* is used.
+[Roucariol and Carvalho](https://fr.wikipedia.org/wiki/Algorithme_Carvalho_et_Roucairol) is an evolution of the [*Ricart and Agrawala*](https://en.wikipedia.org/wiki/Ricart%E2%80%93Agrawala_algorithm) mutual exclusion algorithm. Roucariol considers that, if a client have already given permission for you to run, it is not necessary to ask permission again. Therefore, a system to track this *allowance* is used.
 
 ## General Information
 
